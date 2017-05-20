@@ -1,6 +1,5 @@
 import cmd
 import dbus
-from dbus.mainloop.glib import DBusGMainLoop
 
 class spoticli(cmd.Cmd):
     intro = 'spoticli, a simple cli for spotify'
@@ -11,7 +10,7 @@ class spoticli(cmd.Cmd):
 
     def __init__(self):
         super().__init__()
-        bus = dbus.SessionBus(mainloop=DBusGMainLoop(set_as_default=True))
+        bus = dbus.SessionBus()
         proxy = bus.get_object('org.mpris.MediaPlayer2.spotify', '/org/mpris/MediaPlayer2')
         self.spotify = dbus.Interface(proxy, dbus_interface='org.mpris.MediaPlayer2.Player')
         self.spotify_properties = dbus.Interface(proxy, 'org.freedesktop.DBus.Properties')
