@@ -15,9 +15,6 @@ class spoticli(cmd.Cmd):
         self.spotify = dbus.Interface(proxy, dbus_interface='org.mpris.MediaPlayer2.Player')
         self.spotify_properties = dbus.Interface(proxy, 'org.freedesktop.DBus.Properties')
 
-    def on_song_change(self, interface_name, changed_properties, invalid_properties):
-        self.do_current()
-
     def default(self, line):
         print('unrecognized command')
 
