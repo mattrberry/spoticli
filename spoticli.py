@@ -1,9 +1,11 @@
 import cmd
 import dbus
+import requests
+import time
 
 class spoticli(cmd.Cmd):
     intro = 'spoticli, a simple cli for spotify'
-    prompt = 'spoticli> '
+    prompt = '\033[92mspoticli' + '\033[0m> '
     ruler = ''
     doc_header = 'commands: '
     undoc_header = ''
@@ -16,7 +18,22 @@ class spoticli(cmd.Cmd):
         self.spotify_properties = dbus.Interface(proxy, 'org.freedesktop.DBus.Properties')
 
     def default(self, line):
-        print('unrecognized command')
+        line = line.replace(' ', '%20')
+        print('searching...')
+        data = requests.get('https://api.spotify.com/v1/search/?type=track&q=' + line).json()
+        uri = data['tracks']['items'][0]['uri']
+        self.spotify.OpenUri(uri)
+        time.sleep(.1)
+        self.now_playing()
+
+    def get_metadata(self):
+        metadata = self.spotify_properties.Get('org.mpris.MediaPlayer2.Player', 'Metadata')
+        # for key, value in metadata.items():
+            # print('Key: {}; Value: {}'.format(key, value))
+        song = metadata['xesam:title']
+        artist = metadata['xesam:artist'][0]
+        album = metadata['xesam:album']
+        return (song, artist, album)
 
     def precmd(self, line):
         if line == 'EOF':
@@ -51,13 +68,14 @@ class spoticli(cmd.Cmd):
     def do_current(self, line):
         """current
         display info about the current song"""
-        metadata = self.spotify_properties.Get('org.mpris.MediaPlayer2.Player', 'Metadata')
-        # for key, value in metadata.items():
-            # print('Key: {}; Value: {}'.format(key, value))
-        song = metadata['xesam:title']
-        artist = metadata['xesam:artist'][0]
-        album = metadata['xesam:album']
-        print('Song:   {}\nArtist: {}\nAlbum:  {}'.format(song, artist, album))
+        song, artist, album = self.get_metadata()
+        print('song:   {}\nartist: {}\nalbum:  {}'.format(song, artist, album))
+
+    def now_playing(self):
+        song, artist, album = self.get_metadata()
+        song = '\u001b[36m{}\u001b[0m'.format(song)
+        artist = '\u001b[34m{}\u001b[0m'.format(artist)
+        print('playing {} by {}'.format(song, artist))
 
     def do_exit(self, line):
         """exit
