@@ -23,7 +23,6 @@ class spoticli(cmd.Cmd):
         data = requests.get('https://api.spotify.com/v1/search/?type=track&q=' + line).json()
         uri = data['tracks']['items'][0]['uri']
         self.spotify.OpenUri(uri)
-        time.sleep(.1)
         self.now_playing()
 
     def get_metadata(self):
@@ -59,11 +58,13 @@ class spoticli(cmd.Cmd):
         """next
         skip this song"""
         self.spotify.Next()
+        self.now_playing()
 
     def do_prev(self, line):
         """prev
         play previous song"""
         self.spotify.Previous()
+        self.now_playing()
 
     def do_current(self, line):
         """current
@@ -71,7 +72,9 @@ class spoticli(cmd.Cmd):
         song, artist, album = self.get_metadata()
         print('song:   {}\nartist: {}\nalbum:  {}'.format(song, artist, album))
 
-    def now_playing(self):
+    def now_playing(self, sleep=True):
+        if sleep:
+            time.sleep(.1)
         song, artist, album = self.get_metadata()
         song = '\u001b[36m{}\u001b[0m'.format(song)
         artist = '\u001b[34m{}\u001b[0m'.format(artist)
