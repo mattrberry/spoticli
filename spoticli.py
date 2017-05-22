@@ -19,9 +19,23 @@ class spoticli(cmd.Cmd):
         self.prop = 'org.freedesktop.DBus.Properties'
         self.spotify_url = 'https://api.spotify.com/v1/search/?type=track&q='
         bus = dbus.SessionBus()
-        proxy = bus.get_object(self.dest, self.path)
-        self.spotify = dbus.Interface(proxy, self.memb)
-        self.spotify_properties = dbus.Interface(proxy, self.prop)
+        try:
+            proxy = bus.get_object(self.dest, self.path)
+            self.spotify = dbus.Interface(proxy, self.memb)
+            self.spotify_properties = dbus.Interface(proxy, self.prop)
+        except:
+            print('spotify needs to be running')
+            exit()
+
+    def cmdloop(self, intro=None):
+        print(self.intro)
+        while True:
+            try:
+                super(spoticli, self).cmdloop(intro='')
+                self.postloop()
+                break
+            except KeyboardInterrupt:
+                print('^C')
 
     def default(self, line):
         line = line.replace(' ', '%20')
