@@ -80,7 +80,7 @@ class spoticli(cmd.Cmd):
 
     def now_playing(self, sleep=True):
         if sleep:
-            time.sleep(.1)
+            time.sleep(.2)
         song, artist, album = self.get_metadata()
         song = '\u001b[36m{}\u001b[0m'.format(song)
         artist = '\u001b[34m{}\u001b[0m'.format(artist)
