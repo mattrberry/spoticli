@@ -3,6 +3,7 @@ import dbus
 import requests
 import time
 
+
 class spoticli(cmd.Cmd):
     intro = 'spoticli, a simple cli for spotify'
     prompt = '\033[92mspoticli' + '\033[0m> '
@@ -12,23 +13,29 @@ class spoticli(cmd.Cmd):
 
     def __init__(self):
         super().__init__()
+        self.dest = 'org.mpris.MediaPlayer2.spotify'
+        self.path = '/org/mpris/MediaPlayer2'
+        self.memb = 'org.mpris.MediaPlayer2.Player'
+        self.prop = 'org.freedesktop.DBus.Properties'
+        self.spotify_url = 'https://api.spotify.com/v1/search/?type=track&q='
         bus = dbus.SessionBus()
-        proxy = bus.get_object('org.mpris.MediaPlayer2.spotify', '/org/mpris/MediaPlayer2')
-        self.spotify = dbus.Interface(proxy, dbus_interface='org.mpris.MediaPlayer2.Player')
-        self.spotify_properties = dbus.Interface(proxy, 'org.freedesktop.DBus.Properties')
+        proxy = bus.get_object(self.dest, self.path)
+        self.spotify = dbus.Interface(proxy, self.memb)
+        self.spotify_properties = dbus.Interface(proxy, self.prop)
 
     def default(self, line):
         line = line.replace(' ', '%20')
         print('searching...')
-        data = requests.get('https://api.spotify.com/v1/search/?type=track&q=' + line).json()
-        uri = data['tracks']['items'][0]['uri']
-        self.spotify.OpenUri(uri)
-        self.now_playing()
+        rsp = requests.get(self.spotify_url + line).json()
+        try:
+            uri = rsp['tracks']['items'][0]['uri']
+            self.spotify.OpenUri(uri)
+            self.now_playing()
+        except IndexError:
+            print('could not find song')
 
     def get_metadata(self):
-        metadata = self.spotify_properties.Get('org.mpris.MediaPlayer2.Player', 'Metadata')
-        # for key, value in metadata.items():
-            # print('Key: {}; Value: {}'.format(key, value))
+        metadata = self.spotify_properties.Get(self.memb, 'Metadata')
         song = metadata['xesam:title']
         artist = metadata['xesam:artist'][0]
         album = metadata['xesam:album']
@@ -66,11 +73,10 @@ class spoticli(cmd.Cmd):
         self.spotify.Previous()
         self.now_playing()
 
-    def do_current(self, line):
-        """current
+    def do_song(self, line):
+        """song
         display info about the current song"""
-        song, artist, album = self.get_metadata()
-        print('song:   {}\nartist: {}\nalbum:  {}'.format(song, artist, album))
+        self.now_playing(False)
 
     def now_playing(self, sleep=True):
         if sleep:
@@ -78,7 +84,8 @@ class spoticli(cmd.Cmd):
         song, artist, album = self.get_metadata()
         song = '\u001b[36m{}\u001b[0m'.format(song)
         artist = '\u001b[34m{}\u001b[0m'.format(artist)
-        print('playing {} by {}'.format(song, artist))
+        album = '\u001b[32m{}\u001b[0m'.format(album)
+        print('{} by {} on {}'.format(song, artist, album))
 
     def do_exit(self, line):
         """exit
