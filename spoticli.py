@@ -6,7 +6,7 @@ import time
 
 class spoticli(cmd.Cmd):
     intro = 'spoticli, a simple cli for spotify'
-    prompt = '\033[92mspoticli' + '\033[0m> '
+    prompt = '\u001b[32mspoticli' + '\u001b[0m> '
     ruler = ''
     doc_header = 'commands: '
     undoc_header = ''
@@ -84,7 +84,7 @@ class spoticli(cmd.Cmd):
         song, artist, album = self.get_metadata()
         song = '\u001b[36m{}\u001b[0m'.format(song)
         artist = '\u001b[34m{}\u001b[0m'.format(artist)
-        album = '\u001b[32m{}\u001b[0m'.format(album)
+        album = '\u001b[35m{}\u001b[0m'.format(album)
         print('{} by {} on {}'.format(song, artist, album))
 
     def do_exit(self, line):
