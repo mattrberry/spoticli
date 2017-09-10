@@ -7,6 +7,7 @@ import time
 import json
 from base64 import b64encode
 from os import environ
+from subprocess import call
 
 
 class spoticli(cmd.Cmd):
@@ -53,10 +54,10 @@ class spoticli(cmd.Cmd):
         self.headers = {
             'Authorization': 'Bearer ' + self.auth_token
         }
-        
 
     def check_good_auth(self, response):
         if 'error' in response:
+            print('error in response: ' + response)
             self.new_auth()
             return False
         return True
@@ -114,13 +115,18 @@ class spoticli(cmd.Cmd):
         type 'search' followed by one of those 
         terms and your search query"""
         words = line.split()
-        t = words[0]
+        search_type = words[0]
+        if search_type == 'song':
+            search_type = 'track'
         query = ' '.join(words[1:])
-        self.search(t, query)
+        self.search(search_type, query)
 
-    def search(self, t, query):
+    def complete_search(self, text, line, begidx, endidx):
+        return [i for i in ('track', 'artist', 'album', 'playlist') if i.startswith(text)]
+
+    def search(self, search_type, query):
         params = {
-            'type': t,
+            'type': search_type,
             'q': query
         }
         print('searching...')
@@ -131,23 +137,68 @@ class spoticli(cmd.Cmd):
             else:
                 print(rsp)
         # print(json.dumps(rsp, indent=4, sort_keys=True))
+        options = rsp[search_type + 's']['items']
+        num = 0
+        if search_type == 'track':
+            num = self.choose_track(options)
+        elif search_type == 'artist':
+            num = self.choose_artist(options)
+        elif search_type == 'album':
+            num = self.choose_album(options)
+        elif search_type == 'playlist':
+            num = self.choose_playlist(options)
+        else:
+            print('invalid search type')
+        if num < 0:
+            return
         try:
-            options = rsp[t + 's']['items']
-            uri = rsp[t + 's']['items'][0]['uri']
+            uri = rsp[search_type + 's']['items'][num]['uri']
             self.spotify.OpenUri(uri)
             self.now_playing()
         except IndexError:
-            print('could not find ' + t + ' with query ' + query)
+            print('could not find ' + search_type + ' with query ' + query)
 
+    def choose_track(self, tracks):
+        for idx, track in enumerate(tracks):
+            print(str(idx + 1) + '. ' + self.printable_song(track['name'], track['artists'][0]['name'], track['album']['name']))
+        return int(input('enter the number for the track you want: ')) - 1
+
+    def choose_artist(self, artists):
+        return 0
+
+    def choose_album(self, albums):
+        return 0
+
+    def choose_playlist(self, playlists):
+        for idx, playlist in enumerate(playlists):
+            print(str(idx + 1) + '. ' + self.printable_playlist(playlist['name'], playlist['owner']['id']))
+        return int(input('enter the number of the playlist you want: ')) - 1
 
     def now_playing(self, sleep=True):
         if sleep:
             time.sleep(.2)
         song, artist, album = self.get_metadata()
+        print(self.printable_song(song, artist, album))
+
+    def printable_song(self, song, artist, album):
         song = '\u001b[36m{}\u001b[0m'.format(song)
         artist = '\u001b[34m{}\u001b[0m'.format(artist)
         album = '\u001b[35m{}\u001b[0m'.format(album)
-        print('{} by {} on {}'.format(song, artist, album))
+        return '{} by {} on {}'.format(song, artist, album)
+
+    def printable_artist(self, artist):
+        artist = '\u001b[36m{}\u001b[0m'.format(artist)
+        return artist
+
+    def printable_album(self, album, artist):
+        album = '\u001b[36m{}\u001b[0m'.format(album)
+        artist = '\u001b[34m{}\u001b[0m'.format(artist)
+        return '{} by {}'.format(album, artist)
+
+    def printable_playlist(self, name, owner):
+        name = '\u001b[36m{}\u001b[0m'.format(name)
+        owner = '\u001b[34m{}\u001b[0m'.format(owner)
+        return '{} by {}'.format(name, owner)
 
     def do_exit(self, line):
         """exit
