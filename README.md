@@ -12,4 +12,4 @@ once you register that application, you must make an environment variable named 
 
 ### running
 
-once you have met the one requirement, simply chmod +x spotify.py and run it
+once you have met the one requirement, simply chmod +x spoticli.py and run it
