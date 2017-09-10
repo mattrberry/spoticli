@@ -32,13 +32,9 @@ class spoticli(cmd.Cmd):
             print('spotify needs to be running')
             exit()
 
-        headers = {'Authorization': 'Basic ' + b64encode(environ['spotify_creds'].encode('utf-8')).decode('utf-8')}
-        data = {'grant_type': 'client_credentials'}
-        auth_response = requests.post('https://accounts.spotify.com/api/token', headers=headers, data=data)
-        self.auth_token = json.loads(auth_response.text)['access_token']
-        self.headers = {
-            'Authorization': 'Bearer ' + self.auth_token
-        }
+        self.headers = {'Authorization': 'Basic ' + b64encode(environ['spotify_creds'].encode('utf-8')).decode('utf-8')}
+        self.data = {'grant_type': 'client_credentials'}
+        self.new_auth()
         print(self.auth_token)
 
     def cmdloop(self, intro=None):
@@ -51,20 +47,22 @@ class spoticli(cmd.Cmd):
             except KeyboardInterrupt:
                 print('^C')
 
-    def default(self, line):
-        print('searching...')
-        params = {
-            'type': 'track',
-            'q': line
+    def new_auth(self):
+        auth_response = requests.post('https://accounts.spotify.com/api/token', headers=self.headers, data=self.data)
+        self.auth_token = json.loads(auth_response.text)['access_token']
+        self.headers = {
+            'Authorization': 'Bearer ' + self.auth_token
         }
-        rsp = requests.get(self.spotify_url, params=params, headers=self.headers).json()
-        #print(rsp)
-        try:
-            uri = rsp['tracks']['items'][0]['uri']
-            self.spotify.OpenUri(uri)
-            self.now_playing()
-        except IndexError:
-            print('could not find song')
+        
+
+    def check_good_auth(self, response):
+        if 'error' in response:
+            self.new_auth()
+            return False
+        return True
+
+    def default(self, line):
+        print('\u001b[31m' + 'invalid command. use "help" or "?" to see instructions' + '\u001b[0m')
 
     def get_metadata(self):
         metadata = self.spotify_properties.Get(self.memb, 'Metadata')
@@ -109,6 +107,38 @@ class spoticli(cmd.Cmd):
         """song
         display info about the current song"""
         self.now_playing(False)
+
+    def do_search(self, line):
+        """search
+        search for a track, artist, album, or playlist
+        type 'search' followed by one of those 
+        terms and your search query"""
+        words = line.split()
+        t = words[0]
+        query = ' '.join(words[1:])
+        self.search(t, query)
+
+    def search(self, t, query):
+        params = {
+            'type': t,
+            'q': query
+        }
+        print('searching...')
+        while True:
+            rsp = requests.get(self.spotify_url, params=params, headers=self.headers).json()
+            if self.check_good_auth(rsp):
+                break
+            else:
+                print(rsp)
+        # print(json.dumps(rsp, indent=4, sort_keys=True))
+        try:
+            options = rsp[t + 's']['items']
+            uri = rsp[t + 's']['items'][0]['uri']
+            self.spotify.OpenUri(uri)
+            self.now_playing()
+        except IndexError:
+            print('could not find ' + t + ' with query ' + query)
+
 
     def now_playing(self, sleep=True):
         if sleep:
