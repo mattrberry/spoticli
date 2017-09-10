@@ -4,11 +4,14 @@ import cmd
 import dbus
 import requests
 import time
+import json
+from base64 import b64encode
+from os import environ
 
 
 class spoticli(cmd.Cmd):
     intro = 'spoticli, a simple cli for spotify'
-    prompt = '\u001b[32mspoticli' + '\u001b[0m> '
+    prompt = '\u001b[32m' + 'spoticli' + '\u001b[0m> '
     ruler = ''
     doc_header = 'commands: '
     undoc_header = ''
@@ -19,7 +22,7 @@ class spoticli(cmd.Cmd):
         self.path = '/org/mpris/MediaPlayer2'
         self.memb = 'org.mpris.MediaPlayer2.Player'
         self.prop = 'org.freedesktop.DBus.Properties'
-        self.spotify_url = 'https://api.spotify.com/v1/search/?type=track&q='
+        self.spotify_url = 'https://api.spotify.com/v1/search/'
         bus = dbus.SessionBus()
         try:
             proxy = bus.get_object(self.dest, self.path)
@@ -28,6 +31,15 @@ class spoticli(cmd.Cmd):
         except:
             print('spotify needs to be running')
             exit()
+
+        headers = {'Authorization': 'Basic ' + b64encode(environ['spotify_creds'].encode('utf-8')).decode('utf-8')}
+        data = {'grant_type': 'client_credentials'}
+        auth_response = requests.post('https://accounts.spotify.com/api/token', headers=headers, data=data)
+        self.auth_token = json.loads(auth_response.text)['access_token']
+        self.headers = {
+            'Authorization': 'Bearer ' + self.auth_token
+        }
+        print(self.auth_token)
 
     def cmdloop(self, intro=None):
         print(self.intro)
@@ -40,9 +52,13 @@ class spoticli(cmd.Cmd):
                 print('^C')
 
     def default(self, line):
-        line = line.replace(' ', '%20')
         print('searching...')
-        rsp = requests.get(self.spotify_url + line).json()
+        params = {
+            'type': 'track',
+            'q': line
+        }
+        rsp = requests.get(self.spotify_url, params=params, headers=self.headers).json()
+        #print(rsp)
         try:
             uri = rsp['tracks']['items'][0]['uri']
             self.spotify.OpenUri(uri)
