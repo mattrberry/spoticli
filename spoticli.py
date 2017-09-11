@@ -34,7 +34,6 @@ class spoticli(cmd.Cmd):
         self.headers = {'Authorization': 'Basic ' + b64encode(environ['spotify_creds'].encode('utf-8')).decode('utf-8')}
         self.data = {'grant_type': 'client_credentials'}
         self.new_auth()
-        print(self.auth_token)
 
     def cmdloop(self, intro=None):
         print(self.intro)
