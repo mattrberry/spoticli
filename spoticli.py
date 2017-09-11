@@ -7,8 +7,6 @@ import time
 import json
 from base64 import b64encode
 from os import environ
-from subprocess import call
-
 
 class spoticli(cmd.Cmd):
     intro = 'spoticli, a simple cli for spotify'
@@ -164,10 +162,14 @@ class spoticli(cmd.Cmd):
         return int(input('enter the number for the track you want: ')) - 1
 
     def choose_artist(self, artists):
-        return 0
+        for idx, artist in enumerate(artists):
+            print(str(idx + 1) + '. ' + self.printable_artist(artist['name'], artist['genres']))
+        return int(input('enter the number for the artist you want: ')) - 1
 
     def choose_album(self, albums):
-        return 0
+        for idx, album in enumerate(albums):
+            print(str(idx + 1) + '. ' + self.printable_album(album['name'], album['artists'][0]['name']))
+        return int(input('enter the number for the album you want: ')) - 1
 
     def choose_playlist(self, playlists):
         for idx, playlist in enumerate(playlists):
@@ -186,9 +188,15 @@ class spoticli(cmd.Cmd):
         album = '\u001b[35m{}\u001b[0m'.format(album)
         return '{} by {} on {}'.format(song, artist, album)
 
-    def printable_artist(self, artist):
+    def printable_artist(self, artist, genres):
         artist = '\u001b[36m{}\u001b[0m'.format(artist)
-        return artist
+        genre_str = ''
+        if genres:
+            genre_str = ' genres:'
+            for genre in genres:
+                genre_str += ' ' + genre + ','
+            genre_str = genre_str[:-1]
+        return artist + genre_str
 
     def printable_album(self, album, artist):
         album = '\u001b[36m{}\u001b[0m'.format(album)
